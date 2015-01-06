@@ -1,0 +1,31 @@
+.TH newlisp-tk 1 "February 2007" "version 9.1-1.36" "Commandline Parameters"
+.SH NAME
+.B newlisp-tk 
+\- Tcl/Tk front end for newlisp - lisp like programming language
+.SH SYNOPSIS
+.B newlisp-tk
+[lisp-file]
+.SH DESCRIPTION
+newLISP-tk adds multiple LISP -aware editors / browsers and a source code debugger. It also adds the possibility to make newLISP programs that draw graphics or show graphical widgets of the underlying operating system like buttons, text entries, list boxes, menus etc..
+.SH OPTIONS
+.TP
+lisp-file
+specify this lisp file as a parameter to newlisp when starting newlisp.
+.SH EXAMPLES
+.TP
+Start GUI session
+.B newlisp-tk
+.PP
+.TP
+Load file then start GUI session
+.B newlisp-tk 
+myfile.lsp
+.SH EXIT STATUS
+newlisp returns a zero exist status for normal exit unless exit command specifies a code to be returned. Non zero is returned in case of abnormal exit.
+.SH AUTHOR
+Lutz Mueller <lutz@nuevatec.com>
+.SH SEE ALSO
+newlisp(1) - newlisp man page
+
+http://www.newlisp.org -  the newLISP home page
+

@@ -1,0 +1,20 @@
+# makefile for newLISP v. 9.x.x on Mac OSX default platform
+#
+
+OBJS = newlisp.o nl-symbol.o nl-math.o nl-list.o nl-liststr.o nl-string.o nl-filesys.o \
+	nl-sock.o nl-import.o nl-xml.o nl-web.o nl-matrix.o nl-debug.o pcre.o
+
+CFLAGS = -Wall -O2 -c -g -DMAC_OSX 
+
+CC = cc
+
+default: $(OBJS)
+	$(CC) $(OBJS) -g -lm -o newlisp
+	strip newlisp
+
+.c.o:
+	$(CC) $(CFLAGS) $<
+
+$(OBJS): primes.h protos.h makefile_osx_10.3
+
+

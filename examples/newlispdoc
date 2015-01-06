@@ -1,0 +1,406 @@
+#!/usr/bin/newlisp
+
+# newlispdoc - generate html documentation from newLISP source files
+
+# Copyright (C) 1992-2007 Lutz Mueller <lutz@nuevatec.com>
+ 
+# This program is free software; you can redistribute it and/or modify
+# it under the terms of the GNU General Public License version 2, 1991,
+# as published by the Free Software Foundation.
+
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+ 
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+;; newlispdoc - generates documentation fro newLISP modules
+;; written to newlispdoc specifications
+;;
+;; Version 1.01 integrated syntax.cgi as part of newlispdoc
+;;
+;; EXAMPLES:
+;;    newlispdoc afile.lsp bfile.lsp
+;;    newlispdoc -s afile.lsp bfile.lsp
+;;    newlispdoc -s *.lsp
+;;
+;; will generate two files: afile.lsp.html, bfile.lsp.html
+;; containing HTML formatted documentaion for afile.lsp and bfile.lsp
+;; and will generate index.html with links to the other pages.
+;;
+;; Execute from within the same directory of the source files
+;;
+;;
+
+(set 'version "1.0")
+
+;; get list of files from command line
+(set 'files (2 (main-args)))
+
+(if (empty? files)
+	(begin
+		(println "USAGE: newlispdoc [-s] <file-names>")
+		(exit -1)))
+
+
+(set 'prolog1
+[text]<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=utf-8">
+<title>%s</title>
+[/text])
+
+(set 'prolog2
+[text]
+<style type="text/css" media="screen">
+<!--
+span.arw {
+	color:#666666;
+	font-size: 100%;
+	}
+	
+body, p {
+	font-family: Georgia, Times New Roman, Times, serif;
+	line-height: 115%;
+ 	}
+
+h1, h2, h3, h4 {
+	font-family: Georgia, Times New Roman, Times, serif;
+   	font-size: 110%;
+	}
+
+pre {
+	font-family: Andale Mono, "Bitstream Vera Sans Mono", Monaco, "Courier New";
+   	font-size: 100%;
+	}
+
+tt {
+	font-family: Andale Mono, "Bitstream Vera Sans Mono", Monaco, "Courier New";
+	font-size: 100%;
+	}
+-->
+</style>
+</head>
+<body style="margin: 20px;" text="#444444" bgcolor="#FFFFFF" 
+			link="#376590" vlink="#551A8B" alink="#ffAA28">
+<blockquote>
+<center><h1>Modules</h1></center>
+[/text])
+
+(set 'prolog3 {<p><a href="index.html">Module index</a></p>})
+
+(set 'epilog [text]
+<p></p><center>- &part; -</center><br/>
+<center><font face='Arial' size='-2' color='#444444'>
+generated with <a href="http://newlisp.org">newLISP</a>&nbsp;
+and <a href="http://newlisp.org/newLISPdoc.html">newLISPdoc</a>
+</font></center>
+</blockquote>
+</body>
+</html>
+[/text])
+
+;; routine for generating syntax-highlighted file <file-name>.src.html
+
+(define keyword-color "#0000AA")      ; newLISP keywords
+(define string-color "#008800")       ; single line quoted and braced strings
+(define long-string-color "#008800")  ; multiline for [text], [/text] tags
+(define paren-color "#AA0000")        ; parenthesis
+(define comment-color "#555555")      ; comments
+(define number-color "#665500")       ; numbers
+
+(define function-name-color "#000088")    ; not implemented yet for func in (define (func x y z) ...)
+
+(set 'keywords (map name (filter (fn (x) (primitive? (eval x))) (sort (symbols) > ))))
+(push "nil" keywords)
+(push "true" keywords)
+(set 'keyword-regex (join keywords "|"))
+(replace "?" keyword-regex "\\?")
+(replace "$" keyword-regex "\\$")
+(replace "!" keyword-regex "\\!")
+(replace "+" keyword-regex "\\+")
+(replace "*" keyword-regex "\\*")
+(replace "||" keyword-regex "|\\|")
+(set 'keyword-regex (append {(\s+|\(|\))(} keyword-regex {)(\s+|\(|\))}))
+
+(define (clean-comment str)
+	(replace {<font color='#......'>} str "" 0)
+	(replace {</font>} str "")
+	(replace {[text]} str "&#091&text]")
+	(replace {[/text]} str "&#091&/text]")
+)
+
+(define (format-quoted-string str)
+	(replace {<font color='#......'>} str "" 0)
+	(replace {</font>} str "")
+	(replace ";" str "&#059&")
+	(replace "{" str "&#123&")
+	(replace "}" str "&#125&")
+	(replace {\} str "&#092&")
+	(replace {[text]} str "&#091&text]")
+	(replace {[/text]} str "&#091&/text]")
+	(format {<font color='%s'>%s</font>} string-color str)
+)
+
+(define (format-braced-string str)
+	(replace {<font color='#......'>} str "" 0)
+	(replace {</font>} str "")
+	(replace ";" str "&#059&")
+	(replace {"} str "&#034&")
+	(replace {[text]} str "&#091&text]")
+	(replace {[/text]} str "&#091&/text]")
+	(format {<font color='%s'>%s</font>} string-color str)
+)
+
+(define (format-tagged-string str)
+	(replace {<font color='#......'>} str "" 0)
+	(replace {</font>} str "")
+	(replace ";" str "&#059&")
+	(format {<font color='%s'>%s</font>} string-color str)
+)
+
+(define (write-syntax-highlight fle)
+	(set 'src-file (read-file fle))
+	; replace special HTML characters
+	(replace "\r\n" src-file "\n")
+	(replace "&" src-file "&amp&")
+	(replace "<(\\w)" src-file (append "&lt&" $1) 0)
+	(replace "(\\w)>" src-file (append $1 "&gt&") 0)
+	(replace "/>" src-file "/&gt&" 0)
+	(replace "</" src-file "&lt&/" 0)
+	(replace "<!" src-file "&lt&!" 0)
+	; replace escaped quotes
+	(replace  "\092\034"  src-file "&#092&&#034&")
+
+	; color keywords
+	(replace keyword-regex src-file 
+		(format {%s<font color='%s'>%s</font>%s} $1 keyword-color $2 $3) 0)
+
+	; color numbers
+	(replace {(\s+|\(|\))(0x[0-9a-fA-F]+|[+-]?\d+\.\d+|[+-]?\d+|\.\d+)} src-file 
+         (format {%s<font color='%s'>%s</font>} $1 number-color $2) 0)
+
+	; color parens
+	(replace "(" src-file (format {<font color='%s'>(</font>} paren-color))
+	(replace ")" src-file (format {<font color='%s'>)</font>} paren-color))
+
+	; color braced strings
+	(replace "{.*?}" src-file (format-braced-string $0) 0) ; no multiline string
+	; color quoted strings
+	(replace {".*?"} src-file (format-quoted-string $0) 0) ; no multiline strings
+
+	; color ;  comments
+	(replace ";.*" src-file (clean-comment $0) 0)
+	(replace ";.*" src-file (format {<font color='%s'>%s</font>} comment-color $0) 0)
+
+	; color # comments
+	(set 'buff "")
+	(dolist (lne (parse src-file "\n"))
+		(replace "^\\s*#.*" lne  (clean-comment $0) 0)
+		(replace "^\\s*#.*" lne (format {<font color='%s'>%s</font>} comment-color $0) 0)
+		(write-line lne buff))
+
+	(set 'src-file buff)
+
+	; color tagged strings
+	(replace {\[text\].*?\[/text\]} src-file 
+		(format-tagged-string $0) 4) ; handles multiline strings
+
+	; xlate back special characters
+	(replace "&amp&" src-file "&amp;")   ; ampersand
+	(replace "&lt&" src-file "&lt;")     ; less
+	(replace "&gt&" src-file "&gt;")     ; greater
+	(replace {&#034&} src-file "&#034;") ; quotes
+	(replace {&#059&} src-file "&#059;") ; semicolon
+	(replace {&#123&} src-file "&#123;") ; left curly brace
+	(replace {&#125&} src-file "&#125;") ; right curly brace
+	(replace {&#091&} src-file "&#091;") ; left bracket
+	(replace {&#092&} src-file "&#092;") ; back slash
+
+	; add pre and post tags
+	(write-file (string fle ".src.html") 
+		(append
+			"<html><body><pre>\n" src-file "\n</pre>" 
+			{<center><font face='Arial' size='-3' color='#666666'>}
+			{syntax highlighting with <a href="http://newlisp.org">newLISP</a>&nbsp;}
+			{and <a href="http://newlisp.org/newLISPdoc.html">newLISPdoc</a>}
+			{</font></center></body></html>}))
+)
+
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+
+;; get command line switch -s for generating syntax highlighted source
+(let (pos (find "-s" files))
+	(if pos
+		(begin
+			(pop files pos)
+			(set 'source-link true))))
+
+(set 'indexpage "") ; buffer for modules index page
+(write-buffer indexpage (format prolog1 "Modules"))
+(write-buffer indexpage prolog2)
+
+;; reformat
+
+(define (protect-html text)
+	(replace "<h1>" text "[h1]")
+	(replace "<h2>" text "[h2]")
+	(replace "<h3>" text "[h3]")
+	(replace "<h4>" text "[h4]")
+	(replace "</h1>" text "[/h1]")
+	(replace "</h2>" text "[/h2]")
+	(replace "</h3>" text "[/h3]")
+	(replace "</h4>" text "[/h4]")
+	(replace "<i>" text "[i]")
+	(replace "</i>" text "[/i]")
+	(replace "<em>" text "[em]")
+	(replace "</em>" text "[/em]")
+	(replace "<b>" text "[b]")
+	(replace "</b>" text "[/b]")
+	(replace "<tt>" text "[tt]")
+	(replace "</tt>" text "[/tt]")
+	(replace "<p>" text "[p]")
+	(replace "</p>" text "[/p]")
+	(replace "<br>" text "[br]")
+	(replace "<br/>" text "[br/]")
+	(replace "<pre>" text "[pre]")
+	(replace "</pre>" text "[/pre]")
+	(replace "<center>" text "[center]")
+	(replace "</center>" text "[/center]")
+)
+
+(define (unprotect-html text)
+	(replace "[h1]" text "<h1>")
+	(replace "[h2]" text "<h2>")
+	(replace "[h3]" text "<h3>")
+	(replace "[h4]" text "<h4>")
+	(replace "[/h1]" text "</h1>")
+	(replace "[/h2]" text "</h2>")
+	(replace "[/h3]" text "</h3>")
+	(replace "[/h4]" text "</h4>")
+	(replace "[i]" text "<i>")
+	(replace "[/i]" text "</i>")
+	(replace "[em]" text "<em>")
+	(replace "[/em]" text "</em>")
+	(replace "[b]" text "<b>")
+	(replace "[/b]" text "</b>")
+	(replace "[tt]" text "<tt>")
+	(replace "[/tt]" text "</tt>")
+	(replace "[p]" text "<p>")
+	(replace "[/p]" text "</p>")
+	(replace "[br]" text "<br>")
+	(replace "[br/]" text "<br/>")
+	(replace "[pre]" text "<pre>")
+	(replace "[/pre]" text "</pre>")
+	(replace "[center]" text "<center>")
+	(replace "[/center]" text "</center>")
+)
+
+; format the example tags
+(define (format-example text)
+	(replace "<" text "&lt;")
+	(replace ">" text "&gt;")
+	(string "<p></p><b>example:</b><blockquote><pre>" (replace ";;" text "") "</pre></blockquote>\n")
+)
+
+; write the module tag link on the index page
+; put source link on doc page if -s flag
+(define (format-module text filename , module)
+	(set 'module (string "<br/><br/><h2>Module:&nbsp;" text "</h2>"))
+	(write-buffer indexpage (string {<a href="} filename {.html">} module "</a>\n" ))
+	(if source-link
+		(string {<a href="} filename {.src.html">source</a>} module)
+		(string "<br/>" module))
+)
+
+; write the function name links on the index page under the module
+(define (format-func-link func-name file-name)
+		(let (names (if (find ":" func-name) (parse func-name ":") (list "" func-name)))
+			(write-buffer indexpage (string {<a href="} file-name 
+					{.html#} (names 0) "_" (names 1) {">} (names 1) {</a>&nbsp; &nbsp; }))
+			(string (names 0) "_" (names 1))
+		)
+)
+
+; format the syntax line
+(define (format-syntax text file-name, tag)
+	(replace "<([^<]*?)>" text (string "<em>" $1 "</em>") 0)
+	(replace {\((.*?) (.*?\))} text (string "(<font color=#CC0000>" $1 "</font> " $2) 0)
+	(replace {\(([^ ]*?)\)} text (string "(<font color=#CC0000>" $1 "</font>)") 0)
+	(string
+		(unless (= old-syntax $1)
+			(begin
+				(set 'old-syntax $1)
+				(set 'tag (format-func-link $1 file-name))
+				(set 'tag (string {<a name="} tag {"></a>}))
+				(string "<p></p><center>- &sect; -</center><p></p>\n" tag
+						"<h3><font color=#CC0000>" old-syntax "</font></h3>\n"))
+		"")
+		"<b>syntax: " (trim text) "</b><br/>\n")
+)
+
+(define (format-parameter param text)
+	(replace "<([^<]*?)>" param (string "<em>" $1 "</em>") 0)
+	(replace "<([^<]*?)>" text (string "<em>" $1 "</em>") 0)
+	(string "<b>parameter: </b>" (trim param) " - " (trim text) "<br/>\n")
+)
+
+(define (format-return text)
+	(string "<p><b>return: </b>" (format-text text) "</p>\n") 
+)
+
+(define (format-text text)
+	(replace "<([^<]*?)>" text (string "<em>" $1 "</em>") 0)
+	(replace "'(.*?)'" text (string "<tt>" $1 "</tt>") 0)
+)
+	
+;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;;
+;; MAIN function
+
+(dolist (fle files)
+	(println fle)
+	(set 'html "")
+	(if (file? fle)
+		(set 'page (parse (replace "\r\n" (read-file fle) "\n") "\n"))
+		(begin
+			(println "Cannot read file: " fle)
+			(exit 1))
+	)
+	(set 'page (filter (fn (ln) (or (starts-with ln ";;") (= (length (trim ln)) 0))) page))
+	(set 'page (join page "\n"))
+	(if (find ";; *@module " page 0)
+		(begin
+			(replace ";; @example *\n(.*?)\n\\s*\n" page (format-example $1) 4)
+			(set 'page (protect-html page))
+			(replace ";; *@module (.*?)\n" page (format-module $1 fle)  0)
+			(replace ";; *@author (.*?)\n" page (string "<b>Author: </b>" $1 "<br/>\n")  0)
+			(replace ";; *@version (.*?)\n" page (string "<b>Version: </b>" $1 "<br/>\n")  0)
+			(replace ";; *@syntax (.*?)\n" page (format-syntax $1 fle) 0)
+			(replace ";; *@param (.*?) (.*?)\n" page (format-parameter $1 $2) 0)
+			(replace ";; *@return (.*?)\n" page (format-return $1)  0)
+			(replace ";;\\s*\n" page "<p></p>\n" 0)
+			(replace ";;(.*\n)" page (format-text $1) 0)
+			(replace {@link ([^ ]*?) ([^ ]*?)\s} page (string {<a href="} $1 {">} $2 {</a> }) 0)
+			(set 'page (unprotect-html page))
+			(write-buffer html (format prolog1 fle))
+			(write-buffer html prolog2)
+			(write-buffer html prolog3)
+			(write-buffer html page)
+			(write-buffer html epilog)
+			(write-file (string fle ".html") html)
+			; write syntax highlighted source	
+			(if source-link
+				(write-syntax-highlight fle))
+		))
+)
+	
+; write the modules index page
+(write-buffer indexpage epilog)
+(write-file "index.html" indexpage)
+
+(exit)
+

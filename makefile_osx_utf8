@@ -1,0 +1,22 @@
+# makefile for newLISP v. 9.x.x on Mac OSX for UTF8
+#
+
+OBJS = newlisp.o nl-symbol.o nl-math.o nl-list.o nl-liststr.o nl-string.o nl-filesys.o \
+	nl-sock.o nl-import.o nl-xml.o nl-web.o nl-matrix.o nl-debug.o nl-utf8.o nl-unify.c pcre.o
+
+
+# since 7105 import of dylib libraries also works
+CFLAGS = -Wall -O2 -c -g -DSUPPORT_UTF8 -DMAC_OSX
+
+CC = cc
+
+default: $(OBJS)
+	$(CC) $(OBJS) -g -lm -o newlisp
+	strip newlisp
+
+.c.o:
+	$(CC) $(CFLAGS) $<
+
+$(OBJS): primes.h protos.h makefile_osx_utf8
+
+

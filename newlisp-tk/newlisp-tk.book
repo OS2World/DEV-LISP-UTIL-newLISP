@@ -1,0 +1,3 @@
+#HTMLDOC 1.8.23
+-t pdf13 -f ../../newlisp-tk.pdf --book --no-toc --no-numbered --toctitle "Table of Contents" --no-title --linkstyle underline --bodycolor #FFFFFF --size Universal --left 1.25in --right 1.25in --top 1.25in --bottom 1.25in --header .c. --footer .1h --nup 1 --tocheader .t. --tocfooter ..i --duplex --portrait --color --no-pscommands --no-xrxcomments --compression=5 --jpeg=0 --fontsize 11.0 --fontspacing 1.1 --headingfont Helvetica --bodyfont Times --headfootsize 10.0 --headfootfont Helvetica --charset iso-8859-1 --links --no-embedfonts --pagemode document --pagelayout single --firstpage c1 --pageeffect bo --pageduration 10 --effectduration 1.0 --no-encryption --permissions all  --owner-password ""  --user-password "" --browserwidth 680
+newlisp-tk.html

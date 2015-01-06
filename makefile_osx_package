@@ -1,0 +1,52 @@
+# prepare Mac OSX package root directory in ../Package_contents
+
+datadir=../Package_contents/usr/share
+bindir=../Package_contents/usr/bin
+mandir=../Package_contents/usr/share/man
+
+osx-package:
+	datadir=../Package_contents/usr/share
+	bindir=../Package_contents/usr/bin
+	mandir=../Package_contents/usr/share/man
+	-mkdir ../Package_contents
+	-mkdir ../Package_contents/usr
+	-install -d $(datadir)
+	-install -d $(mandir)
+	-install -d $(bindir)
+	-install -d $(mandir)/man1
+	-install -d $(datadir)/doc/newlisp
+	-install -d $(datadir)/newlisp/newlisp-tk/images
+	-install -m 755 newlisp $(bindir)/newlisp
+	-install -m 755 newlisp-tk/newlisp-tk.tcl $(bindir)/newlisp-tk
+	-install -m 755 examples/newlispdoc $(bindir)/newlispdoc
+	-install -m 644 init.lsp.example $(datadir)/newlisp/init.lsp.example
+	-install -m 644 examples/httpd-conf.lsp $(datadir)/newlisp/httpd-conf.lsp
+	-install -m 644 examples/link.lsp $(datadir)/newlisp/link.lsp
+	-install -m 644 examples/tcltk.lsp $(datadir)/newlisp/tcltk.lsp
+	-install -m 644 examples/syntax.cgi $(datadir)/newlisp/syntax.cgi
+	-install -m 644 modules/mysql.lsp $(datadir)/newlisp/mysql.lsp
+	-install -m 644 modules/mysql5.lsp $(datadir)/newlisp/mysql5.lsp
+	-install -m 644 modules/pop3.lsp $(datadir)/newlisp/pop3.lsp
+	-install -m 644 modules/ftp.lsp $(datadir)/newlisp/ftp.lsp
+	-install -m 644 modules/infix.lsp $(datadir)/newlisp/infix.lsp
+	-install -m 644 modules/smtp.lsp $(datadir)/newlisp/smtp.lsp
+	-install -m 644 modules/odbc.lsp $(datadir)/newlisp/odbc.lsp
+	-install -m 644 modules/postscript.lsp $(datadir)/newlisp/postscript.lsp
+	-install -m 644 modules/cgi.lsp $(datadir)/newlisp/cgi.lsp
+	-install -m 644 modules/sqlite3.lsp $(datadir)/newlisp/sqlite3.lsp
+	-install -m 644 modules/stat.lsp $(datadir)/newlisp/stat.lsp
+	-install -m 644 modules/unix.lsp $(datadir)/newlisp/unix.lsp
+	-install -m 644 modules/zlib.lsp $(datadir)/newlisp/zlib.lsp
+	-install -m 644 doc/COPYING $(datadir)/doc/newlisp/COPYING
+	-install -m 644 doc/CREDITS $(datadir)/doc/newlisp/CREDITS
+	-install -m 644 doc/newlisp_manual.html $(datadir)/doc/newlisp/newlisp_manual.html
+	-install -m 644 doc/newlisp_index.html $(datadir)/doc/newlisp/newlisp_index.html
+	-install -m 644 doc/manual_frame.html $(datadir)/doc/newlisp/manual_frame.html
+	-install -m 644 doc/CodePatterns.html $(datadir)/doc/newlisp/CodePatterns.html
+	-install -m 644 doc/newLISPdoc.html $(datadir)/doc/newlisp/newLISPdoc.html
+	-install -m 644 newlisp-tk/newlisp-tk.html $(datadir)/doc/newlisp/newlisp-tk.html
+	-install -m 644 newlisp-tk/*.lsp $(datadir)/newlisp/newlisp-tk/
+	-install -m 644 newlisp-tk/images/* $(datadir)/newlisp/newlisp-tk/images/
+	-install -m 644 doc/newlisp.1 $(mandir)/man1/newlisp.1
+	-install -m 644 doc/newlisp-tk.1 $(mandir)/man1/newlisp-tk.1
+	-install -m 644 doc/newlispdoc.1 $(mandir)/man1/newlispdoc.1
